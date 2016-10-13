@@ -5,6 +5,7 @@
 // the understanding on some learning algorithms. To start with, I'm simply
 // focusing on a logistic regression problem with variable updates using 
 // gradient descent.
+// note: Not very optimized in its current form. 
 
 import peasy.*;
 PeasyCam cam;
@@ -84,12 +85,6 @@ void setup() {
 
 void draw() {
     background(255);
-    /*
-     PShape predict = createShape();
-     predict.beginShape(POINTS);
-     predict.fill(0,64);
-     predict.stroke(0);
-     */
     translate(width/8, height/2, 0);
     scale(0.5);
     float boxSize = 50;
@@ -99,10 +94,7 @@ void draw() {
 
     alpha = alpha*0.99999;
     order.shuffle();
-    /*
-    rotateX(radians(5));
-     rotateY(radians(-25));
-     */
+    
     for (int j=0; j<model.getRowCount(); j++) {
         int i = order.get(j);
         pushMatrix();
@@ -140,47 +132,9 @@ void draw() {
             translate(0, -((actual[i]-p)*probabilitySize)/2, 0);
             box(boxSize, -((actual[i]-p)*probabilitySize), boxSize);
         }
-
-        /*
-        if(!showDifference){
-         fill(0.5169 - prediction[i], 100, 100);
-         noStroke();
-         translate(0, -(prediction[i]*probabilitySize)/2, 0);
-         box(boxSize, -(prediction[i]*probabilitySize), boxSize);
-         
-         if(actual[i] == 1){
-         noFill();
-         stroke(0);
-         translate(0, -((actual[i] - prediction[i])*probabilitySize)/2, 0);        
-         box(boxSize, -(actual[i]*probabilitySize), boxSize);
-         }
-         } else {
-         fill(0.5169 - prediction[i], 100, 100);
-         noStroke();
-         if(abs(actual[i]-prediction[i]) > 0.99) {
-         stroke(0, 100, 100);
-         }
-         translate(0, -((actual[i]-prediction[i])*probabilitySize)/2, 0);
-         box(boxSize, -((actual[i]-prediction[i])*probabilitySize), boxSize);        
-         }*/
         colorMode(RGB, 255, 255, 255);
         popMatrix();
     }
-    //predict.endShape();
-
-    /*
-    PShape data = createShape();
-     data.beginShape(POINTS);
-     data.fill(0,64);
-     data.stroke(255,0,0);
-     for(int i=0; i<model.getRowCount(); i++){
-     data.translate(map(temperature[i], 0, temperatureMax, 0, width), map(tillage[i], 0, 3, 0, height) + (actual[i]*20), precip[i]);
-     }
-     data.endShape();
-     
-     shape(predict);
-     shape(data);
-     */
 
     cam.beginHUD();
     {
