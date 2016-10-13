@@ -6,6 +6,9 @@
 // focusing on a logistic regression problem with variable updates using 
 // gradient descent.
 // note: Not very optimized in its current form. 
+// note: Currectly it runs over the complete dataset, so will experience overfitting.
+//       the focus was on visualization and creating a possible GUI, not on the correctness
+//       of the ML algorithm and the actual learning.
 
 import peasy.*;
 PeasyCam cam;
@@ -93,7 +96,7 @@ void draw() {
     lights();
 
     alpha = alpha*0.99999;
-    order.shuffle();
+    order.shuffle();        // to shuffle the order for each iteration
     
     for (int j=0; j<model.getRowCount(); j++) {
         int i = order.get(j);
@@ -135,7 +138,6 @@ void draw() {
         colorMode(RGB, 255, 255, 255);
         popMatrix();
     }
-
     cam.beginHUD();
     {
         textSize(16);
