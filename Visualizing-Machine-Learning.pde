@@ -1,4 +1,10 @@
-
+// Author: Payod Panda
+// Date: 8/24/2016
+// Tested with Processing 3.0b4
+// This is a stab at visualizing machine learning to see how it can help
+// the understanding on some learning algorithms. To start with, I'm simply
+// focusing on a logistic regression problem with variable updates using 
+// gradient descent.
 
 import peasy.*;
 PeasyCam cam;
