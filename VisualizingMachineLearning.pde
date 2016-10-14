@@ -7,8 +7,9 @@
 // gradient descent.
 // note: Not very optimized in its current form. 
 // note: Currectly it runs over the complete dataset, so will experience overfitting.
-//       the focus was on visualization and creating a possible GUI, not on the correctness
+//       The focus was on visualization and creating a possible GUI, not on the correctness
 //       of the ML algorithm and the actual learning.
+// note: implement costs
 
 import peasy.*;
 PeasyCam cam;
