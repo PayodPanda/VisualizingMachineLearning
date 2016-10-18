@@ -21,15 +21,19 @@ int[] tillage, actual;
 float precipMax, precipMin, temperatureMax, temperatureMin;
 int tillageMax, tillageMin;
 int count;
-float b0, b1, b2, b3, alpha, p;
+FloatList _b0, _b1, _b2, _b3, _p;
+float b0, b1, b2, b3, p, alpha;
 PFont font;
 
 boolean showDifference, showModel;
 IntList order;
 
+PShape b0Path;
+
 void setup() {
     size(displayWidth, displayHeight, P3D);
     cam = new PeasyCam(this, width/2.0, height/2.0, 0, 800);
+    frameRate(30);
     ortho();
     smooth(16);
     font = createFont("Consolas", 96);
@@ -77,13 +81,20 @@ void setup() {
     }
 
     println(count);
-
-    b0=37;
-    b1=-2;
-    b2=0;
-    b3=0;
+    
+    _b0 = new FloatList();
+    _b1 = new FloatList();
+    _b2 = new FloatList();
+    _b3 = new FloatList();
+    _p = new FloatList();
+    
+    b0 = 37;
+    b1 = -2;
+    b2 = 0;
+    b3 = 0;
+    p = 0;
+    
     alpha = 0.08;
-    p=0;
 }
 
 
@@ -99,6 +110,14 @@ void draw() {
     alpha = alpha*0.99999;
     order.shuffle();        // to shuffle the order for each iteration
     
+    if(frameCount%1 == 0){
+        _b0.append(b0);
+        _b1.append(b1);
+        _b2.append(b2);
+        _b3.append(b3);
+        _p.append(p);
+    }
+    
     for (int j=0; j<model.getRowCount(); j++) {
         int i = order.get(j);
         pushMatrix();
@@ -106,6 +125,7 @@ void draw() {
         translate(map(temperature[i], temperatureMin, temperatureMax, -width/4, width/4) +  (tillage[i]-1) * width/2, 0, map(precip[i], precipMin, precipMax, -height/2, height/2));    
         //map(tillage[i], tillageMin, tillageMax, (probabilitySize) * (tillageMax-tillageMin), -(probabilitySize) * (tillageMax-tillageMin))
         if(!showModel){
+            // gradient descent:
             p = 1/(1+ exp(-(b0 + b1*temperature[i] + /*b2*tillage[i] + */b3*precip[i] )));
             b0 = b0 + alpha * (actual[i] - p) * (1-p) * p * 1;
             b1 = b1 + alpha * (actual[i] - p) * (1-p) * p * temperature[i];
@@ -143,7 +163,45 @@ void draw() {
     {
         textSize(16);
         fill(0);
-        text("   b0: " + nfs(b0, 2, 6) + "\n   b1: " + nfs(b1, 2, 6) + "\n   b2: " + nfs(b2, 2, 6) + "\n   b3: " + nfs(b3, 2, 6) + "\n\nalpha: " + nfs(alpha, 2, 6) + "\nepoch:  " + frameCount, 20, 100);
+        text("alpha: " + nfs(alpha, 2, 6) + "\nepoch:  " + frameCount, 20, 100);
+        color b0Color, b1Color, b2Color, b3Color;
+        b0Color = color(255, 255, 0);
+        b1Color = color(255, 0, 255);
+        b2Color = color(255, 255, 0);
+        b3Color = color(0, 255, 255);
+        int count = _p.size();
+        int heightPadding = 60, widthPadding = 160;
+        int vizHeight = height-(heightPadding*2);
+        float b0height = 0, b1height = 0, b2height = 0, b3height = 0;
+        int vizSize = 5;
+        //println(count);
+        //noStroke();
+        stroke(64);
+        strokeWeight(0.5);
+        fill(64);
+        rect(width-widthPadding, 0, widthPadding, height);
+        for(int i=0; i < (count>1920?1920:count); i+=vizSize){
+            //b0Path.vertex(width-(count-i), height-(map(_b0.get(i), _b0.min(), _b0.max(), 0, 200)));
+            //println(width-(count-i), height-(map(_b0.get(i), _b0.min(), _b0.max(), 0, 200)));
+            b0height = height-(map(_b0.get(count>1920? count-1920+i : i), _b0.min(), _b0.max(), heightPadding, vizHeight)); 
+            b1height = height-(map(_b1.get(count>1920? count-1920+i : i), _b0.min(), _b1.max(), heightPadding, vizHeight)); 
+            b2height = height-(map(_b2.get(count>1920? count-1920+i : i), _b0.min(), _b2.max(), heightPadding, vizHeight));
+            b3height = height-(map(_b3.get(count>1920? count-1920+i : i), _b0.min(), _b3.max(), heightPadding, vizHeight));
+            fill(b0Color);
+            ellipse(width-widthPadding-((count>1920?1920:count)-i), b0height, vizSize, vizSize);
+            fill(b1Color);
+            ellipse(width-widthPadding-((count>1920?1920:count)-i), b1height, vizSize, vizSize);
+            //ellipse(width-widthPadding-((count>1920?1920:count)-i), b2height, vizSize, vizSize);
+            fill(b3Color);
+            ellipse(width-widthPadding-((count>1920?1920:count)-i), b3height, vizSize, vizSize);
+        }
+        fill(b0Color);
+        text("b0: " + nfs(b0, 2, 6), width-widthPadding+10, b0height);
+        fill(b1Color);
+        text("b1: " + nfs(b1, 2, 6), width-widthPadding+10, b1height);
+        //text("b2: " + nfs(b2, 2, 6), width-100, b2height);
+        fill(b3Color);
+        text("b3: " + nfs(b3, 2, 6), width-widthPadding+10, b3height);
     }
     cam.endHUD();
 }
