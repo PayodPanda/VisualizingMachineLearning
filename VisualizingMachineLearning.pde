@@ -6,10 +6,11 @@
 // focusing on a logistic regression problem with variable updates using 
 // gradient descent.
 // note: Not very optimized in its current form. 
-// note: Currectly it runs over the complete dataset, so will experience overfitting.
+// note: Currently it runs over the complete dataset (not separating validation / test 
+//       datasets from superset), so will experience overfitting.
 //       The focus was on visualization and creating a possible GUI, not on the correctness
 //       of the ML algorithm and the actual learning.
-// note: implement costs
+// note: Implement costs
 
 import peasy.*;
 PeasyCam cam;
@@ -21,7 +22,7 @@ int[] tillage, actual;
 float precipMax, precipMin, temperatureMax, temperatureMin;
 int tillageMax, tillageMin;
 int count;
-FloatList _b0, _b1, _b2, _b3, _p;
+FloatList b0Complete, b1Complete, b2Complete, b3Complete, pComplete;
 float b0, b1, b2, b3, p, alpha;
 PFont font;
 
@@ -82,11 +83,11 @@ void setup() {
 
     println(count);
     
-    _b0 = new FloatList();
-    _b1 = new FloatList();
-    _b2 = new FloatList();
-    _b3 = new FloatList();
-    _p = new FloatList();
+    b0Complete = new FloatList();
+    b1Complete = new FloatList();
+    b2Complete = new FloatList();
+    b3Complete = new FloatList();
+    pComplete = new FloatList();
     
     b0 = 37;
     b1 = -2;
@@ -111,11 +112,11 @@ void draw() {
     order.shuffle();        // to shuffle the order for each iteration
     
     if(frameCount%1 == 0){
-        _b0.append(b0);
-        _b1.append(b1);
-        _b2.append(b2);
-        _b3.append(b3);
-        _p.append(p);
+        b0Complete.append(b0);
+        b1Complete.append(b1);
+        b2Complete.append(b2);
+        b3Complete.append(b3);
+        pComplete.append(p);
     }
     
     for (int j=0; j<model.getRowCount(); j++) {
@@ -169,11 +170,29 @@ void draw() {
         b1Color = color(255, 0, 255);
         b2Color = color(255, 255, 255);
         b3Color = color(255, 255, 0);
-        int count = _p.size();
         int heightPadding = 60, widthPadding = 160;
         int vizHeight = height-(heightPadding*2);
         float b0height = 0, b1height = 0, b2height = 0, b3height = 0;
         int vizSize = 5;
+        
+        int totalCount = pComplete.size();
+        int viewCount = (totalCount>width-widthPadding)?(width-widthPadding):totalCount;
+        
+        FloatList b0Temp, b1Temp, b2Temp, b3Temp;    
+        b0Temp = new FloatList();
+        b1Temp = new FloatList();
+        b2Temp = new FloatList();
+        b3Temp = new FloatList();
+        
+        // below i represents the index in the bigger total index (b0Complete)
+        for(int i=totalCount-viewCount; i < totalCount; i++){
+            // here append the value of b0Complete.get(i) to an empty FloatList that you declare before this for loop
+            // this will give you the interesting subset of the complete history that you want to visualize on screen
+            b0Temp.append(b0Complete.get(i));
+            b1Temp.append(b1Complete.get(i));
+            b2Temp.append(b2Complete.get(i));
+            b3Temp.append(b3Complete.get(i));
+        }
         //println(count);
         //noStroke();
         stroke(64);
@@ -181,20 +200,21 @@ void draw() {
         noStroke();
         fill(64);
         rect(width-widthPadding, 0, widthPadding, height);
-        for(int i=0; i < (count>width-widthPadding?width-widthPadding:count); i+=1){
-            //b0Path.vertex(width-(count-i), height-(map(_b0.get(i), _b0.min(), _b0.max(), 0, 200)));
-            //println(width-(count-i), height-(map(_b0.get(i), _b0.min(), _b0.max(), 0, 200)));
-            b0height = height-(map(_b0.get(count>width-widthPadding? count-(width-widthPadding)+i : i), _b0.min(), _b0.max(), heightPadding, vizHeight)); 
-            b1height = height-(map(_b1.get(count>width-widthPadding? count-(width-widthPadding)+i : i), _b0.min(), _b1.max(), heightPadding, vizHeight)); 
-            b2height = height-(map(_b2.get(count>width-widthPadding? count-(width-widthPadding)+i : i), _b0.min(), _b2.max(), heightPadding, vizHeight));
-            b3height = height-(map(_b3.get(count>width-widthPadding? count-(width-widthPadding)+i : i), _b0.min(), _b3.max(), heightPadding, vizHeight));
+        for(int i=0; i < viewCount; i+=1){
+            //b0Path.vertex(width-(totalCount-i), height-(map(b0Complete.get(i), b0Complete.min(), b0Complete.max(), 0, 200)));
+            //println(width-(totalCount-i), height-(map(b0Complete.get(i), b0Complete.min(), b0Complete.max(), 0, 200)));
+            float positionX = width-widthPadding-viewCount+i;
+            b0height = height-(map(b0Temp.get(i), b0Temp.min(), b0Temp.max(), heightPadding, vizHeight)); 
+            b1height = height-(map(b1Temp.get(i), b1Temp.min(), b1Temp.max(), heightPadding, vizHeight)); 
+            b2height = height-(map(b2Temp.get(i), b2Temp.min(), b2Temp.max(), heightPadding, vizHeight)); 
+            b3height = height-(map(b3Temp.get(i), b3Temp.min(), b3Temp.max(), heightPadding, vizHeight)); 
             fill(b0Color);
-            ellipse(width-widthPadding-((count>1920?1920:count)-i), b0height, vizSize, vizSize);
+            ellipse(positionX, b0height, vizSize, vizSize);
             fill(b1Color);
-            ellipse(width-widthPadding-((count>1920?1920:count)-i), b1height, vizSize, vizSize);
-            //ellipse(width-widthPadding-((count>1920?1920:count)-i), b2height, vizSize, vizSize);
+            ellipse(positionX, b1height, vizSize, vizSize);
+            //ellipse(positionX, b2height, vizSize, vizSize);
             fill(b3Color);
-            ellipse(width-widthPadding-((count>1920?1920:count)-i), b3height, vizSize, vizSize);
+            ellipse(positionX, b3height, vizSize, vizSize);
         }
         fill(b0Color);
         text("b0: " + nfs(b0, 2, 6), width-widthPadding+10, b0height);
