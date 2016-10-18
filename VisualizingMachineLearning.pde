@@ -165,10 +165,10 @@ void draw() {
         fill(0);
         text("alpha: " + nfs(alpha, 2, 6) + "\nepoch:  " + frameCount, 20, 100);
         color b0Color, b1Color, b2Color, b3Color;
-        b0Color = color(255, 255, 0);
+        b0Color = color(0, 255, 255);
         b1Color = color(255, 0, 255);
-        b2Color = color(255, 255, 0);
-        b3Color = color(0, 255, 255);
+        b2Color = color(255, 255, 255);
+        b3Color = color(255, 255, 0);
         int count = _p.size();
         int heightPadding = 60, widthPadding = 160;
         int vizHeight = height-(heightPadding*2);
@@ -178,15 +178,16 @@ void draw() {
         //noStroke();
         stroke(64);
         strokeWeight(0.5);
+        noStroke();
         fill(64);
         rect(width-widthPadding, 0, widthPadding, height);
-        for(int i=0; i < (count>1920?1920:count); i+=vizSize){
+        for(int i=0; i < (count>width-widthPadding?width-widthPadding:count); i+=1){
             //b0Path.vertex(width-(count-i), height-(map(_b0.get(i), _b0.min(), _b0.max(), 0, 200)));
             //println(width-(count-i), height-(map(_b0.get(i), _b0.min(), _b0.max(), 0, 200)));
-            b0height = height-(map(_b0.get(count>1920? count-1920+i : i), _b0.min(), _b0.max(), heightPadding, vizHeight)); 
-            b1height = height-(map(_b1.get(count>1920? count-1920+i : i), _b0.min(), _b1.max(), heightPadding, vizHeight)); 
-            b2height = height-(map(_b2.get(count>1920? count-1920+i : i), _b0.min(), _b2.max(), heightPadding, vizHeight));
-            b3height = height-(map(_b3.get(count>1920? count-1920+i : i), _b0.min(), _b3.max(), heightPadding, vizHeight));
+            b0height = height-(map(_b0.get(count>width-widthPadding? count-(width-widthPadding)+i : i), _b0.min(), _b0.max(), heightPadding, vizHeight)); 
+            b1height = height-(map(_b1.get(count>width-widthPadding? count-(width-widthPadding)+i : i), _b0.min(), _b1.max(), heightPadding, vizHeight)); 
+            b2height = height-(map(_b2.get(count>width-widthPadding? count-(width-widthPadding)+i : i), _b0.min(), _b2.max(), heightPadding, vizHeight));
+            b3height = height-(map(_b3.get(count>width-widthPadding? count-(width-widthPadding)+i : i), _b0.min(), _b3.max(), heightPadding, vizHeight));
             fill(b0Color);
             ellipse(width-widthPadding-((count>1920?1920:count)-i), b0height, vizSize, vizSize);
             fill(b1Color);
