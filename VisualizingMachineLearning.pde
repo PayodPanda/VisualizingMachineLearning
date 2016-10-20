@@ -24,7 +24,9 @@ int tillageMax, tillageMin;
 int count;
 FloatList b0Complete, b1Complete, b2Complete, b3Complete, pComplete;
 float b0, b1, b2, b3, p, alpha;
-int epoch;
+int epoch, elapsedTime, wastedTime;
+float clockIn, clockOut;
+int frameSkip;
 PFont font;
 
 boolean showDifference, showModel, showBoxes, combineTillage;
@@ -99,6 +101,10 @@ void setup() {
     
     alpha = 0.08;
     epoch = 0;
+    clockIn = 0;
+    elapsedTime = 0;
+    
+    frameSkip = 1;
 }
 
 
@@ -120,6 +126,7 @@ void draw() {
         pComplete.append(p);
         alpha = alpha*0.99999;
         epoch++;
+        elapsedTime = int(millis()/1000) - wastedTime;
         order.shuffle();        // to shuffle the order for each iteration
     }
     
@@ -222,125 +229,129 @@ void draw() {
         textSize(48);
         text("visualizing machine learning", 32, 88); 
         pushMatrix();
-        fill(64);
-        translate(0, 60, 0);
-        textSize(16);
-        if(showModel) text("Showing data from Prof. Mina's predictive model. [p] to switch to machine learning trial mode.", 32, 64); else text("Showing data from the machine learning trial. [p] to switch to Prof. Mina's model.", 32, 64); 
-        if(showDifference) text("Showing the difference between observed value and prediction. [spacebar] to switch to probability.", 32, 88); else text("Showing the probability of finding disease. [spacebar] to switch to deviation.", 32, 88);
-        if(showBoxes) text("The translucent boxes represent observations of the disease in data. [b] to turn off.", 32, 110); else text("[b] to show disease observations.", 32, 110);
-        if(combineTillage) text("Showing the data with tillage combined. [c] to classify.", 32, 132); else text("Showing the data classified by tillage. [c] to combine.", 32, 132);
-        textAlign(RIGHT);
-        text("learning rate (alpha): " + nfs(alpha, 2, 6) + "\niteration (epoch):  " + epoch, width-32, 64);
-        textAlign(LEFT);
+        {
+            fill(64);
+            translate(0, 60, 0);
+            textSize(16);
+            if(showModel) text("Showing data from Prof. Mina's predictive model. [p] to switch to machine learning trial mode.", 32, 64); else text("Showing data from the machine learning trial. [p] to switch to Prof. Mina's model.", 32, 64); 
+            if(showDifference) text("Showing the difference between observed value and prediction. [spacebar] to switch to probability.", 32, 88); else text("Showing the probability of finding disease. [spacebar] to switch to deviation.", 32, 88);
+            if(showBoxes) text("The translucent boxes represent observations of the disease in data. [b] to turn off.", 32, 110); else text("[b] to show disease observations.", 32, 110);
+            if(combineTillage) text("Showing the data with tillage combined. [c] to classify.", 32, 132); else text("Showing the data classified by tillage. [c] to combine.", 32, 132);
+            textAlign(RIGHT);
+            if(!showModel) text("learning rate (alpha): " + nfs(alpha, 2, 6) + "\niteration (epoch):  " + epoch + "\ntime elapsed:" + elapsedTime + "s", width-32, 64);
+            textAlign(LEFT);
+        }
         popMatrix();
         
-        color b0Color, b1Color, b2Color, b3Color;
-        b0Color = color(0, 255, 255);
-        b1Color = color(255, 0, 255);
-        b2Color = color(255, 255, 255);
-        b3Color = color(255, 255, 0);
-        
-        int heightPaddingT = 30,                                                // top
-            heightPaddingB = 30,                                                // bottom
-            heightPadding = heightPaddingT + heightPaddingB,                    // total
-            vizHeight = (height/2)-(heightPadding*2),                           // height
-            widthPaddingR = 80,                                                 // right
-            widthPaddingL = 80,                                                 // left
-            widthPadding = widthPaddingR + widthPaddingL;                       // total
+        if(!showModel){
+            color b0Color, b1Color, b2Color, b3Color;
+            b0Color = color(0, 255, 255);
+            b1Color = color(255, 0, 255);
+            b2Color = color(255, 255, 255);
+            b3Color = color(255, 255, 0);
             
-        float b0height = 0, b1height = 0, b2height = 0, b3height = 0;
-        int vizSize = 2;
-        
-        int totalCount = pComplete.size();
-        int viewCount = (totalCount>width-2*widthPadding)?(width-2*widthPadding):totalCount;
-        
-        FloatList b0Temp, b1Temp, b2Temp, b3Temp;    
-        b0Temp = new FloatList();
-        b1Temp = new FloatList();
-        b2Temp = new FloatList();
-        b3Temp = new FloatList();
-        
-        // below, i represents the index in the bigger total index (b0Complete)
-        for(int i=totalCount-viewCount; i < totalCount; i++){
-            // here append the value of b0Complete.get(i) to an empty FloatList that you declare before this for loop
-            // this will give you the interesting subset of the complete history that you want to visualize on screen
-            b0Temp.append(b0Complete.get(i));
-            b1Temp.append(b1Complete.get(i));
-            b2Temp.append(b2Complete.get(i));
-            b3Temp.append(b3Complete.get(i));
-        }
-        
-        PShape b0Viz = createShape();
-        b0Viz.beginShape();
-        b0Viz.noFill();
-        b0Viz.stroke(b0Color);
-        b0Viz.strokeWeight(vizSize);
-        
-        PShape b1Viz = createShape();
-        b1Viz.beginShape();
-        b1Viz.noFill();
-        b1Viz.stroke(b1Color);
-        b1Viz.strokeWeight(vizSize);
-        /*
-        PShape b2Viz = createShape();
-        b2Viz.beginShape();
-        b2Viz.noFill();
-        b2Viz.stroke(b2Color);
-        b2Viz.strokeWeight(vizSize);
-        */
-        PShape b3Viz = createShape();
-        b3Viz.beginShape();
-        b3Viz.noFill();
-        b3Viz.stroke(b3Color);
-        b3Viz.strokeWeight(vizSize);
-        for(int i=0; i < viewCount; i+=1){
-            float positionX = width-widthPadding-viewCount+i;
+            int heightPaddingT = 30,                                                // top
+                heightPaddingB = 30,                                                // bottom
+                heightPadding = heightPaddingT + heightPaddingB,                    // total
+                vizHeight = (height/2)-(heightPadding*2),                           // height
+                widthPaddingR = 80,                                                 // right
+                widthPaddingL = 80,                                                 // left
+                widthPadding = widthPaddingR + widthPaddingL;                       // total
+                
+            float b0height = 0, b1height = 0, b2height = 0, b3height = 0;
+            int vizSize = 2;
             
-            // in the local dataset that we're interested in, has there been any change at all? If yes, then use that to determine height of point, else place it in the center of the chart.
-            b0height = (b0Temp.min() != b0Temp.max()) ? height-(map(b0Temp.get(i), b0Temp.min(), b0Temp.max(), heightPadding, vizHeight)) : height-(vizHeight/2); 
-            b1height = (b1Temp.min() != b1Temp.max()) ? height-(map(b1Temp.get(i), b1Temp.min(), b1Temp.max(), heightPadding, vizHeight)) : height-(vizHeight/2); 
-            b2height = (b2Temp.min() != b2Temp.max()) ? height-(map(b2Temp.get(i), b2Temp.min(), b2Temp.max(), heightPadding, vizHeight)) : height-(vizHeight/2); 
-            b3height = (b3Temp.min() != b3Temp.max()) ? height-(map(b3Temp.get(i), b3Temp.min(), b3Temp.max(), heightPadding, vizHeight)) : height-(vizHeight/2); 
-            b0Viz.vertex(positionX, b0height);
-            b1Viz.vertex(positionX, b1height);
-            //b2Viz.vertex(positionX, b2height);
-            b3Viz.vertex(positionX, b3height); 
-        }
-        b3Viz.endShape();
-        //b2Viz.endShape();
-        b1Viz.endShape();
-        b0Viz.endShape();
-        shape(b0Viz);
-        shape(b1Viz);
-        //shape(b2Viz);
-        shape(b3Viz);
-        
-        // the container lines
-        colorMode(RGB, 255, 255, 255);
-        stroke(64);
-        strokeWeight(2);
-        line(widthPadding, height - vizHeight - heightPadding, widthPadding, height);
-        line(width-widthPadding, height - vizHeight - heightPadding, width-widthPadding, height);
-        //noStroke();
-        
-        // the text
-        if(abs(b0height-b1height) < 16){
-            b0height = b1height-16;            
-        }
-        if(abs(b1height-b3height) < 16){
-            b3height = b1height+16;            
-        }
-        if(abs(b0height-b3height) < 16){
-            b3height = b0height+16;            
-        }
-        if(totalCount>0){
-            fill(b0Color);
-            text("b0: " + nfs(b0Complete.get(totalCount-1), 2, 6), width-widthPadding+10, b0height);
-            fill(b1Color);
-            text("b1: " + nfs(b1Complete.get(totalCount-1), 2, 6), width-widthPadding+10, b1height);
-            //text("b2: " + nfs(b2, 2, 6), width-100, b2height);
-            fill(b3Color);
-            text("b3: " + nfs(b3Complete.get(totalCount-1), 2, 6), width-widthPadding+10, b3height);
+            int totalCount = pComplete.size();
+            int viewCount = (totalCount>width-2*widthPadding)?(width-2*widthPadding):totalCount;
+            
+            FloatList b0Temp, b1Temp, b2Temp, b3Temp;    
+            b0Temp = new FloatList();
+            b1Temp = new FloatList();
+            b2Temp = new FloatList();
+            b3Temp = new FloatList();
+            
+            // below, i represents the index in the bigger total index (b0Complete)
+            for(int i=totalCount-viewCount; i < totalCount; i+=1){
+                // here append the value of b0Complete.get(i) to an empty FloatList that you declare before this for loop
+                // this will give you the interesting subset of the complete history that you want to visualize on screen
+                b0Temp.append(b0Complete.get(i));
+                b1Temp.append(b1Complete.get(i));
+                b2Temp.append(b2Complete.get(i));
+                b3Temp.append(b3Complete.get(i));
+            }
+            
+            PShape b0Viz = createShape();
+            b0Viz.beginShape();
+            b0Viz.noFill();
+            b0Viz.stroke(b0Color);
+            b0Viz.strokeWeight(vizSize);
+            
+            PShape b1Viz = createShape();
+            b1Viz.beginShape();
+            b1Viz.noFill();
+            b1Viz.stroke(b1Color);
+            b1Viz.strokeWeight(vizSize);
+            /*
+            PShape b2Viz = createShape();
+            b2Viz.beginShape();
+            b2Viz.noFill();
+            b2Viz.stroke(b2Color);
+            b2Viz.strokeWeight(vizSize);
+            */
+            PShape b3Viz = createShape();
+            b3Viz.beginShape();
+            b3Viz.noFill();
+            b3Viz.stroke(b3Color);
+            b3Viz.strokeWeight(vizSize);
+            for(int i=0; i < viewCount; i+=1){
+                float positionX = width-widthPadding-viewCount+i;
+                
+                // in the local dataset that we're interested in, has there been any change at all? If yes, then use that to determine height of point, else place it in the center of the chart.
+                b0height = (b0Temp.min() != b0Temp.max()) ? height-(map(b0Temp.get(i), b0Temp.min(), b0Temp.max(), heightPadding, vizHeight)) : height-(vizHeight/2); 
+                b1height = (b1Temp.min() != b1Temp.max()) ? height-(map(b1Temp.get(i), b1Temp.min(), b1Temp.max(), heightPadding, vizHeight)) : height-(vizHeight/2); 
+                b2height = (b2Temp.min() != b2Temp.max()) ? height-(map(b2Temp.get(i), b2Temp.min(), b2Temp.max(), heightPadding, vizHeight)) : height-(vizHeight/2); 
+                b3height = (b3Temp.min() != b3Temp.max()) ? height-(map(b3Temp.get(i), b3Temp.min(), b3Temp.max(), heightPadding, vizHeight)) : height-(vizHeight/2); 
+                b0Viz.vertex(positionX, b0height);
+                b1Viz.vertex(positionX, b1height);
+                //b2Viz.vertex(positionX, b2height);
+                b3Viz.vertex(positionX, b3height); 
+            }
+            b3Viz.endShape();
+            //b2Viz.endShape();
+            b1Viz.endShape();
+            b0Viz.endShape();
+            shape(b0Viz);
+            shape(b1Viz);
+            //shape(b2Viz);
+            shape(b3Viz);
+            
+            // the container lines
+            colorMode(RGB, 255, 255, 255);
+            stroke(64);
+            strokeWeight(2);
+            line(widthPadding, height - vizHeight - heightPadding, widthPadding, height);
+            line(width-widthPadding, height - vizHeight - heightPadding, width-widthPadding, height);
+            //noStroke();
+            
+            // the text
+            if(abs(b0height-b1height) < 16){
+                b0height = b1height-16;            
+            }
+            if(abs(b1height-b3height) < 16){
+                b3height = b1height+16;            
+            }
+            if(abs(b0height-b3height) < 16){
+                b3height = b0height+16;            
+            }
+            if(totalCount>0){
+                fill(b0Color);
+                text("b0: " + nfs(b0Complete.get(totalCount-1), 2, 6), width-widthPadding+10, b0height);
+                fill(b1Color);
+                text("b1: " + nfs(b1Complete.get(totalCount-1), 2, 6), width-widthPadding+10, b1height);
+                //text("b2: " + nfs(b2, 2, 6), width-100, b2height);
+                fill(b3Color);
+                text("b3: " + nfs(b3Complete.get(totalCount-1), 2, 6), width-widthPadding+10, b3height);
+            }
         }
     }
     cam.endHUD();
@@ -351,6 +362,11 @@ void keyPressed() {
         showDifference = !showDifference;
     }
     if(key== 'p'){
+        if(showModel) {
+            clockIn = int(millis()/1000);
+            wastedTime += clockIn - clockOut;
+        }
+        if(!showModel) clockOut = int(millis()/1000);
         showModel = !showModel;
     }
     if(key== 'b'){
@@ -362,10 +378,16 @@ void keyPressed() {
     if (key == CODED) {
         if (keyCode == UP) {
             alpha += 0.01;
-        } else {
-            if (keyCode == DOWN) {
-                alpha -= 0.01;
-            }
+        } 
+        if (keyCode == DOWN) {
+            alpha -= 0.01;
         }
+        if (keyCode == LEFT) {
+            frameSkip -= 10;
+        }
+        if (keyCode == RIGHT) {
+            frameSkip += 10;
+        }
+        
     }
 }
