@@ -111,7 +111,7 @@ void draw() {
     alpha = alpha*0.99999;
     order.shuffle();        // to shuffle the order for each iteration
     
-    if(!showModel && frameCount%60 == 0){
+    if(!showModel && frameCount%1 == 0){
         b0Complete.append(b0);
         b1Complete.append(b1);
         b2Complete.append(b2);
@@ -135,9 +135,9 @@ void draw() {
         } else {
             p = prediction[i];
         }
-
+        
         if (!showDifference) {
-            fill(0.5169 - p, 100, 100);
+            fill(map(p, 0.5, 0, 0, 0.5), 100, 100);
             noStroke();
             translate(0, -(p*probabilitySize)/2, 0);
             box(boxSize, -(p*probabilitySize), boxSize);
@@ -149,7 +149,7 @@ void draw() {
                 box(boxSize, -(actual[i]*probabilitySize), boxSize);
             }
         } else {
-            fill(0.5169 - p, 100, 100);
+            fill(map(p, 0.5, 0, 0, 0.5), 100, 100);
             noStroke();
             if (abs(actual[i]-p) > 0.5) {
                 stroke(0, 100, 100);
@@ -160,18 +160,27 @@ void draw() {
         colorMode(RGB, 255, 255, 255);
         popMatrix();
     }
+    
     cam.beginHUD();
     {
         textSize(16);
         fill(0);
-        text("alpha: " + nfs(alpha, 2, 6) + "\nepoch:  " + frameCount, 20, 100);
+        text("learning rate (alpha): " + nfs(alpha, 2, 6) + "\niteration (epoch):  " + frameCount, 20, 100);
+        
         color b0Color, b1Color, b2Color, b3Color;
         b0Color = color(0, 255, 255);
         b1Color = color(255, 0, 255);
         b2Color = color(255, 255, 255);
         b3Color = color(255, 255, 0);
-        int heightPadding = 60, widthPadding = 160;
-        int vizHeight = height-(heightPadding*2);
+        
+        int heightPaddingT = 30,                                                // top
+            heightPaddingB = 30,                                                // bottom
+            heightPadding = heightPaddingT + heightPaddingB,                    // total
+            vizHeight = (height/2)-(heightPadding*2),                           // height
+            widthPaddingR = 80,                                                 // right
+            widthPaddingL = 80,                                                 // left
+            widthPadding = widthPaddingR + widthPaddingL;                       // total
+            
         float b0height = 0, b1height = 0, b2height = 0, b3height = 0;
         int vizSize = 2;
         
@@ -184,7 +193,7 @@ void draw() {
         b2Temp = new FloatList();
         b3Temp = new FloatList();
         
-        // below i represents the index in the bigger total index (b0Complete)
+        // below, i represents the index in the bigger total index (b0Complete)
         for(int i=totalCount-viewCount; i < totalCount; i++){
             // here append the value of b0Complete.get(i) to an empty FloatList that you declare before this for loop
             // this will give you the interesting subset of the complete history that you want to visualize on screen
@@ -193,12 +202,6 @@ void draw() {
             b2Temp.append(b2Complete.get(i));
             b3Temp.append(b3Complete.get(i));
         }
-        stroke(64);
-        strokeWeight(0.5);
-        noStroke();
-        fill(64);
-        rect(width-widthPadding, height - vizHeight - heightPadding, widthPadding, vizHeight + heightPadding);
-        rect(0, height - vizHeight - heightPadding, widthPadding, vizHeight + heightPadding);
         
         PShape b0Viz = createShape();
         b0Viz.beginShape();
@@ -242,6 +245,15 @@ void draw() {
         shape(b1Viz);
         //shape(b2Viz);
         shape(b3Viz);
+        
+        // the container lines
+        stroke(64);
+        strokeWeight(2);
+        line(widthPadding, height - vizHeight - heightPadding, widthPadding, height);
+        line(width-widthPadding, height - vizHeight - heightPadding, width-widthPadding, height);
+        noStroke();
+        
+        // the text
         if(abs(b0height-b1height) < 16){
             b0height = b1height-16;            
         }
