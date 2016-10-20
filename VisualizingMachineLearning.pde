@@ -24,9 +24,10 @@ int tillageMax, tillageMin;
 int count;
 FloatList b0Complete, b1Complete, b2Complete, b3Complete, pComplete;
 float b0, b1, b2, b3, p, alpha;
+int epoch;
 PFont font;
 
-boolean showDifference, showModel;
+boolean showDifference, showModel, showBoxes, combineTillage;
 IntList order;
 
 PShape b0Path;
@@ -39,6 +40,7 @@ void setup() {
     smooth(16);
     font = createFont("Consolas", 96);
     textFont(font);
+    textSize(16);
 
     model = loadTable("Prediction.csv", "header");    
     count = model.getRowCount();
@@ -96,11 +98,12 @@ void setup() {
     p = 0;
     
     alpha = 0.08;
+    epoch = 0;
 }
 
 
 void draw() {
-    background(255);
+    background(192);
     translate(width/8, height/2, 0);
     scale(0.5);
     float boxSize = 50;
@@ -108,8 +111,6 @@ void draw() {
     strokeWeight(4);
     lights();
 
-    alpha = alpha*0.99999;
-    order.shuffle();        // to shuffle the order for each iteration
     
     if(!showModel && frameCount%1 == 0){
         b0Complete.append(b0);
@@ -117,13 +118,20 @@ void draw() {
         b2Complete.append(b2);
         b3Complete.append(b3);
         pComplete.append(p);
+        alpha = alpha*0.99999;
+        epoch++;
+        order.shuffle();        // to shuffle the order for each iteration
     }
     
     for (int j=0; j<model.getRowCount(); j++) {
         int i = order.get(j);
         pushMatrix();
-        colorMode(HSB, 1, 100, 100);
-        translate(map(temperature[i], temperatureMin, temperatureMax, -width/4, width/4) +  (tillage[i]-1) * width/2, 0, map(precip[i], precipMin, precipMax, -height/2, height/2));    
+        colorMode(HSB, 1, 100, 100, 100);
+        if(!combineTillage){
+            translate(map(temperature[i], temperatureMin, temperatureMax, -width/4, width/4) +  (tillage[i]-1) * width/2, 0, map(precip[i], precipMin, precipMax, -height/2, height/2));
+        } else {
+            translate(map(temperature[i], temperatureMin, temperatureMax, -width/4, width/4) + width*3/4, 0, map(precip[i], precipMin, precipMax, -height/2, height/2));        
+        }
         //map(tillage[i], tillageMin, tillageMax, (probabilitySize) * (tillageMax-tillageMin), -(probabilitySize) * (tillageMax-tillageMin))
         if(!showModel){
             // gradient descent:
@@ -137,21 +145,66 @@ void draw() {
         }
         
         if (!showDifference) {
-            fill(map(p, 0.5, 0, 0, 0.5), 100, 100);
+            fill(map(p, 0.5, 0, 0, 0.2), 100, 100);
             noStroke();
             translate(0, -(p*probabilitySize)/2, 0);
             box(boxSize, -(p*probabilitySize), boxSize);
 
-            if (actual[i] == 1) {
+            if (actual[i] == 1 && showBoxes) {
                 noFill();
-                stroke(0);
-                translate(0, -((actual[i] - p)*probabilitySize)/2, 0);        
-                box(boxSize, -(actual[i]*probabilitySize), boxSize);
+                //stroke(0, 0, 25);
+                translate(0, (p*probabilitySize)/2, 0);   
+                beginShape(QUAD_STRIP);
+                {
+                    fill(0, 100, 100, 32);
+                    vertex(-boxSize/2, -(actual[i]*probabilitySize), -boxSize/2);
+                    vertex(-boxSize/2, -(actual[i]*probabilitySize), boxSize/2);
+                    vertex(boxSize/2, -(actual[i]*probabilitySize), -boxSize/2);
+                    vertex(boxSize/2, -(actual[i]*probabilitySize), boxSize/2);
+                    fill(0.2, 100, 100, 32);
+                    vertex(boxSize/2, 0, -boxSize/2);
+                    vertex(boxSize/2, 0, boxSize/2);
+                    vertex(-boxSize/2, 0, -boxSize/2);
+                    vertex(-boxSize/2, 0, boxSize/2);
+                    fill(0, 100, 100, 32);
+                    vertex(-boxSize/2, -(actual[i]*probabilitySize), -boxSize/2);
+                    vertex(-boxSize/2, -(actual[i]*probabilitySize), boxSize/2);
+                }
+                endShape(CLOSE);   
+                beginShape(QUAD_STRIP);
+                {
+                    fill(0, 100, 100, 32);
+                    vertex(-boxSize/2, -(actual[i]*probabilitySize), boxSize/2);
+                    vertex(boxSize/2, -(actual[i]*probabilitySize), boxSize/2);
+                    fill(0.2, 100, 100, 32);
+                    vertex(-boxSize/2, 0, boxSize/2);
+                    vertex(boxSize/2, 0, boxSize/2);
+                }
+                endShape(CLOSE);
+                beginShape(QUAD_STRIP);
+                {
+                    fill(0, 100, 100, 32);
+                    vertex(-boxSize/2, -(actual[i]*probabilitySize), -boxSize/2);
+                    vertex(boxSize/2, -(actual[i]*probabilitySize), -boxSize/2);
+                    fill(0.2, 100, 100, 32);
+                    vertex(-boxSize/2, 0, -boxSize/2);
+                    vertex(boxSize/2, 0, -boxSize/2);
+                }
+                endShape(CLOSE);
+                //box(boxSize, -(actual[i]*probabilitySize), boxSize);
+            } else {
+                noFill();
+                stroke(0, 0, 25);
+                //translate(0, -((actual[i] - p)*probabilitySize)/2, 0);  
+                pushMatrix();
+                rotateX(PI/2);
+                //rect(-boxSize/2, -boxSize/2, boxSize, boxSize);
+                popMatrix();
             }
         } else {
-            fill(map(p, 0.5, 0, 0, 0.5), 100, 100);
+            fill(map(p, 0.5, 0, 0, 0.2), 100, 100);
             noStroke();
-            if (abs(actual[i]-p) > 0.5) {
+            if (abs(actual[i]-p) > 0.5 && showBoxes) {
                 stroke(0, 100, 100);
             }
             translate(0, -((actual[i]-p)*probabilitySize)/2, 0);
@@ -163,9 +216,23 @@ void draw() {
     
     cam.beginHUD();
     {
+        noLights();
         textSize(16);
-        fill(0);
-        text("learning rate (alpha): " + nfs(alpha, 2, 6) + "\niteration (epoch):  " + frameCount, 20, 100);
+        fill(240, 0, 0);
+        textSize(48);
+        text("visualizing machine learning", 32, 88); 
+        pushMatrix();
+        fill(64);
+        translate(0, 60, 0);
+        textSize(16);
+        if(showModel) text("Showing data from Prof. Mina's predictive model. [p] to switch to machine learning trial mode.", 32, 64); else text("Showing data from the machine learning trial. [p] to switch to Prof. Mina's model.", 32, 64); 
+        if(showDifference) text("Showing the difference between observed value and prediction. [spacebar] to switch to probability.", 32, 88); else text("Showing the probability of finding disease. [spacebar] to switch to deviation.", 32, 88);
+        if(showBoxes) text("The translucent boxes represent observations of the disease in data. [b] to turn off.", 32, 110); else text("[b] to show disease observations.", 32, 110);
+        if(combineTillage) text("Showing the data with tillage combined. [c] to classify.", 32, 132); else text("Showing the data classified by tillage. [c] to combine.", 32, 132);
+        textAlign(RIGHT);
+        text("learning rate (alpha): " + nfs(alpha, 2, 6) + "\niteration (epoch):  " + epoch, width-32, 64);
+        textAlign(LEFT);
+        popMatrix();
         
         color b0Color, b1Color, b2Color, b3Color;
         b0Color = color(0, 255, 255);
@@ -228,10 +295,12 @@ void draw() {
         b3Viz.strokeWeight(vizSize);
         for(int i=0; i < viewCount; i+=1){
             float positionX = width-widthPadding-viewCount+i;
-            b0height = height-(map(b0Temp.get(i), b0Temp.min(), b0Temp.max(), heightPadding, vizHeight)); 
-            b1height = height-(map(b1Temp.get(i), b1Temp.min(), b1Temp.max(), heightPadding, vizHeight)); 
-            b2height = height-(map(b2Temp.get(i), b2Temp.min(), b2Temp.max(), heightPadding, vizHeight)); 
-            b3height = height-(map(b3Temp.get(i), b3Temp.min(), b3Temp.max(), heightPadding, vizHeight));
+            
+            // in the local dataset that we're interested in, has there been any change at all? If yes, then use that to determine height of point, else place it in the center of the chart.
+            b0height = (b0Temp.min() != b0Temp.max()) ? height-(map(b0Temp.get(i), b0Temp.min(), b0Temp.max(), heightPadding, vizHeight)) : height-(vizHeight/2); 
+            b1height = (b1Temp.min() != b1Temp.max()) ? height-(map(b1Temp.get(i), b1Temp.min(), b1Temp.max(), heightPadding, vizHeight)) : height-(vizHeight/2); 
+            b2height = (b2Temp.min() != b2Temp.max()) ? height-(map(b2Temp.get(i), b2Temp.min(), b2Temp.max(), heightPadding, vizHeight)) : height-(vizHeight/2); 
+            b3height = (b3Temp.min() != b3Temp.max()) ? height-(map(b3Temp.get(i), b3Temp.min(), b3Temp.max(), heightPadding, vizHeight)) : height-(vizHeight/2); 
             b0Viz.vertex(positionX, b0height);
             b1Viz.vertex(positionX, b1height);
             //b2Viz.vertex(positionX, b2height);
@@ -247,11 +316,12 @@ void draw() {
         shape(b3Viz);
         
         // the container lines
+        colorMode(RGB, 255, 255, 255);
         stroke(64);
         strokeWeight(2);
         line(widthPadding, height - vizHeight - heightPadding, widthPadding, height);
         line(width-widthPadding, height - vizHeight - heightPadding, width-widthPadding, height);
-        noStroke();
+        //noStroke();
         
         // the text
         if(abs(b0height-b1height) < 16){
@@ -282,6 +352,12 @@ void keyPressed() {
     }
     if(key== 'p'){
         showModel = !showModel;
+    }
+    if(key== 'b'){
+        showBoxes = !showBoxes;
+    }
+    if(key== 'c'){
+        combineTillage = !combineTillage;
     }
     if (key == CODED) {
         if (keyCode == UP) {
